@@ -52,13 +52,10 @@ DigitalOut debugging(PB_1);                   // Led for debug
 float lat = 0, lng = 0;
 int err, svd_pck = 0;
 packet_t data;
-uint8_t bluet[sizeof(packet_t)];
 state_t state = OPEN, last_state = IDLE;
 
 int main() {
   logger_on = 1; // Device is on, so led is on
-  memset(bluet, 0,
-         sizeof(packet_t)); // Prepare serial to send packets of our type
   int num_parts = 0,        // Number of parts already saved
       num_files = 0,        // Number of files in SD
       svd_pck = 0;          // Number of saved packets (in current data part)
@@ -266,7 +263,7 @@ void ble_memory_dump() {
   /* External loop */
   while ((p = readdir(d)) != NULL) {
     if (strcmp(p->d_name, ".Trash-1000")) {
-      break;
+      continue;
     }
 
     char adress[10];
@@ -276,7 +273,7 @@ void ble_memory_dump() {
     /* Internal loop */
     while ((q = readdir(e)) != NULL) {
       if (strcmp(q->d_name, ".Trash-1000")) {
-        break;
+        continue;
       }
       char internalAdress[10];
       sprintf(internalAdress, "%s/%s", adress, q->d_name);
@@ -290,17 +287,17 @@ void ble_memory_dump() {
 
 void ble_send_file(const char *file_to_be_sent) {
   FILE *ble_file = fopen(file_to_be_sent, "a");
+  uint8_t bluet[sizeof(packet_t)];
+  uint8_t *ble_data;
 
-  packet_t ble_data;
-
-  fread((void *)&ble_data, sizeof(packet_t), 1,
+  fread((void *)&ble_data, 300 * sizeof(packet_t), 1,
         ble_file); // Write a packet to the file
 
   memcpy(&bluet, (uint8_t *)&ble_data,
-         sizeof(packet_t)); // Makes narrow conversion to send uint8_t
+         sizeof(ble_data)); // Makes narrow conversion to send uint8_t
                             // format packet by bluetooh
 
-  for (int i = 0; i < sizeof(bluet); i++) {
+  for (int i = 0; i < sizeof(ble_data); i++) {
     bluetooth.putc(bluet[i]); // Send packet char by char
   }
 }
